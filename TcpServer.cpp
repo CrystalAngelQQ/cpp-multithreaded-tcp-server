@@ -3,10 +3,16 @@
 
 TcpServer::TcpServer(int port)
 {
+    this->port = port;
 
     serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    std::cout << serverSocket << std::endl;
-    this->port = port;
+
+    if (serverSocket == INVALID_SOCKET)
+    {
+        throw std::runtime_error("Failed to create socket");
+    }
+
+    std::cout << "Socket created: " << serverSocket << std::endl;
 }
 
 void TcpServer::start()
@@ -22,7 +28,7 @@ void TcpServer::start()
         return;
     }
 
-    int listen_value = listen(serverSocket, 5);
+    int listen_value = listen(serverSocket, SOMAXCONN); // can put a number instead of SOMAXCONN
     if (listen_value == SOCKET_ERROR)
     {
         perror("Could not listen");
@@ -47,26 +53,31 @@ void TcpServer::start()
         int clientPort = ntohs(clientAddress.sin_port);
         std::cout << "Accepted new client @ " << clientIp << ":" << clientPort << std::endl;
 
-        const int BUFFER_SIZE = 1024;
-        char buffer[BUFFER_SIZE];
+        handleClient(clientSocket);
+    }
+}
 
-        while (true)
+void TcpServer::handleClient(SOCKET clientSocket)
+{
+    const int BUFFER_SIZE = 1024;
+    char buffer[BUFFER_SIZE];
+
+    while (true)
+    {
+        memset(buffer, 0, BUFFER_SIZE);
+        int bytesReceived = recv(clientSocket, buffer, BUFFER_SIZE - 1, 0);
+
+        if (bytesReceived <= 0)
         {
-            memset(buffer, 0, BUFFER_SIZE);
-            int bytesReceived = recv(clientSocket, buffer, BUFFER_SIZE - 1, 0);
-
-            if (bytesReceived <= 0)
-            {
-                std::cout << "Client disconnected or error." << std::endl;
-                break;
-            }
-
-            std::cout << "Received from client: " << buffer << std::endl;
-
-            std::string response = "Hello from C++ Server! Message received.\n";
-            send(clientSocket, response.c_str(), response.size(), 0);
+            std::cout << "Client disconnected or error." << std::endl;
+            break;
         }
 
-        closesocket(clientSocket);
+        std::cout << "Received from client: " << buffer << std::endl;
+
+        std::string response = "Hello from C++ Server! Message received.\n";
+        send(clientSocket, response.c_str(), response.size(), 0);
     }
+
+    closesocket(clientSocket);
 }

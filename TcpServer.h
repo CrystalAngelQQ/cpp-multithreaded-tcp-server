@@ -15,4 +15,5 @@ private:
 public:
     TcpServer(int port);
     void start();
+    void handleClient(SOCKET clientSocket);
 };
