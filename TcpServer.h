@@ -11,9 +11,9 @@ private:
     SOCKET serverSocket;
     struct sockaddr_in address;
     int port;
+    void handleClient(SOCKET clientSocket);
 
 public:
     TcpServer(int port);
     void start();
-    void handleClient(SOCKET clientSocket);
 };
