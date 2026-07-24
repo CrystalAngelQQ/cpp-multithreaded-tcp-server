@@ -9,6 +9,8 @@ add_executable(${PROJECT_NAME}
     WsaSession.h
     TcpServer.h
     TcpServer.cpp
+    SafeQueue.h
+    ThreadPool.h
 )
 
 target_link_libraries(${PROJECT_NAME} ws2_32)

@@ -16,7 +16,6 @@ public:
     SafeQueue() = default;
     ~SafeQueue() = default;
 
-    // Добавление задачи в очередь
     void push(T item)
     {
         std::unique_lock<std::mutex> lock(mutex_);

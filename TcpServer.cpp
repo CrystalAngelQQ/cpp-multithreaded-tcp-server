@@ -1,10 +1,8 @@
 #include "TcpServer.h"
 #include <iostream>
 
-TcpServer::TcpServer(int port)
+TcpServer::TcpServer(int port) : port(port), threadPool_(4)
 {
-    this->port = port;
-
     serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if (serverSocket == INVALID_SOCKET)
@@ -53,7 +51,8 @@ void TcpServer::start()
         int clientPort = ntohs(clientAddress.sin_port);
         std::cout << "Accepted new client @ " << clientIp << ":" << clientPort << std::endl;
 
-        handleClient(clientSocket);
+        threadPool_.enqueue([this, clientSocket]()
+                            { this->handleClient(clientSocket); });
     }
 }
 
