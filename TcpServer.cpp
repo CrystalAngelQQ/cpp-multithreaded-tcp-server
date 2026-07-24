@@ -1,5 +1,9 @@
 #include "TcpServer.h"
 #include <iostream>
+#include <sstream>
+#include <chrono>
+#include <ctime>
+#include <cstring>
 
 TcpServer::TcpServer(int port) : port(port), threadPool_(4)
 {
@@ -66,15 +70,71 @@ void TcpServer::handleClient(SOCKET clientSocket)
         memset(buffer, 0, BUFFER_SIZE);
         int bytesReceived = recv(clientSocket, buffer, BUFFER_SIZE - 1, 0);
 
-        if (bytesReceived <= 0)
+        if (bytesReceived == 0)
         {
-            std::cout << "Client disconnected or error." << std::endl;
+            std::cout << "Client disconnected gracefully.\n";
+            break;
+        }
+        else if (bytesReceived == SOCKET_ERROR)
+        {
+            std::cerr << "Recv failed with error: " << WSAGetLastError() << "\n";
             break;
         }
 
-        std::cout << "Received from client: " << buffer << std::endl;
+        std::string rawMessage(buffer);
 
-        std::string response = "Hello from C++ Server! Message received.\n";
+        rawMessage.erase(rawMessage.find_last_not_of("\r\n") + 1);
+
+        if (rawMessage.empty())
+        {
+            continue;
+        }
+
+        std::string command;
+        std::string argument;
+
+        std::stringstream ss(rawMessage);
+        ss >> command;
+
+        std::getline(ss, argument);
+
+        if (!argument.empty() && argument[0] == ' ')
+        {
+            argument.erase(0, 1);
+        }
+
+        std::string response;
+
+        if (command == "PING")
+        {
+            response = "PONG\n";
+        }
+        else if (command == "ECHO")
+        {
+            response = argument + "\n";
+        }
+        else if (command == "TIME")
+        {
+
+            auto now = std::chrono::system_clock::now();
+            std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
+
+            char timeBuf[100];
+            std::strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", std::localtime(&nowTime));
+
+            response = std::string(timeBuf) + "\n";
+        }
+        else if (command == "QUIT")
+        {
+            response = "BYE\n";
+            send(clientSocket, response.c_str(), response.size(), 0);
+            break;
+        }
+        else
+        {
+            response = "UNKNOWN COMMAND\n";
+        }
+
         send(clientSocket, response.c_str(), response.size(), 0);
     }
 
